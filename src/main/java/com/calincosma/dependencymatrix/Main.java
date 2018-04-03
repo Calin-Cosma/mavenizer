@@ -1,9 +1,6 @@
 package com.calincosma.dependencymatrix;
 
-import com.calincosma.dependencymatrix.domain.Jar;
-import com.calincosma.dependencymatrix.domain.Matrix;
-import com.calincosma.dependencymatrix.service.JarService;
-import com.calincosma.dependencymatrix.service.NexusService;
+import com.calincosma.dependencymatrix.service.TemplateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,23 +26,25 @@ public class Main {
 	
 	
 	public static void main(String[] args) throws Exception {
-		List<Path> jarFiles = getJarFiles(args[1]);
+		template();
 		
-		JarService jarService = new JarService();
-		NexusService nexusService = new NexusService();
-		
-		Matrix matrix = jarService.buildMatrix(jarFiles);
-		
-		
-		System.out.println("\n\n\n");
-		System.out.println("Top level jars");
-		
-		
-		List<Jar> jars = matrix.getJars().stream().filter(j -> j.getReverseDependencies().isEmpty()).collect(Collectors.toList());
-		jars.stream().map(j -> j.getFullPath()).forEach(System.out::println);
-		
-		matrix.getJars().stream().forEach(j -> j.setArtifact(nexusService.findMavenArtifact(j)));
-		matrix.getJars().stream().filter(j -> j.getArtifact() != null).map(j -> j.getArtifact()).forEach(System.out::println);
+//		List<Path> jarFiles = getJarFiles(args[1]);
+//
+//		JarService jarService = new JarService();
+//		NexusService nexusService = new NexusService();
+//
+//		Matrix matrix = jarService.buildMatrix(jarFiles);
+//
+//
+//		System.out.println("\n\n\n");
+//		System.out.println("Top level jars");
+//
+//
+//		List<Jar> jars = matrix.getJars().stream().filter(j -> j.getReverseDependencies().isEmpty()).collect(Collectors.toList());
+//		jars.stream().map(j -> j.getFullPath()).forEach(System.out::println);
+//
+//		matrix.getJars().stream().forEach(j -> j.setArtifact(nexusService.findMavenArtifact(j)));
+//		matrix.getJars().stream().filter(j -> j.getArtifact() != null).map(j -> j.getArtifact()).forEach(System.out::println);
 	}
 	
 	
@@ -60,6 +59,14 @@ public class Main {
 		}
 		
 		return jarFiles;
+	}
+	
+	
+	private static void template() {
+		TemplateService templateService = new TemplateService();
+		
+	
+	
 	}
 	
 	
