@@ -36,13 +36,13 @@
 		</encoder>
 	</appender>
 	
-	<!--<logger name="com.comcom" level="debug" additivity="false">-->
-		<!--<appender-ref ref="FILE"/>-->
-	<!--</logger>-->
-	
 	<root level="INFO">
 		<appender-ref ref="FILE"/>
 		<appender-ref ref="CONSOLE"/>
 	</root>
-
+	
+	<logger name="com.calincosma">
+		<level value="DEBUG"/>
+	</logger>
+	
 </configuration>

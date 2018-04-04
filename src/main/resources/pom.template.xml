@@ -13,11 +13,11 @@
 		<logback.version>1.2.3</logback.version>
 	</properties>
 	
-	<dependencies>
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-			<version>2.6</version>
+	<dependencies th:if="${not #lists.isEmpty(dependencies)}">
+		<dependency th:each="dependency : ${dependencies}">
+			<groupId th:text="${dependency.group}">dependency.group</groupId>
+			<artifactId th:text="${dependency.artifact}">dependency.artifact</artifactId>
+			<version th:text="${dependency.version}">dependency.version</version>
 		</dependency>
 	</dependencies>
 
