@@ -1,12 +1,9 @@
 package com.calincosma.mavenizer.service;
 
-import com.calincosma.mavenizer.Main;
 import com.calincosma.mavenizer.config.Config;
 import com.calincosma.mavenizer.config.FolderConfig;
 import com.calincosma.mavenizer.domain.Clazz;
 import com.calincosma.mavenizer.domain.Jar;
-import com.calincosma.mavenizer.domain.Matrix;
-import com.calincosma.mavenizer.exception.ClassDependencyNotFoundException;
 import com.calincosma.mavenizer.exception.JarProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +18,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,27 +42,38 @@ public class JarService {
 		Set<Jar> jars = config.getFolders().stream()
 		                                    .flatMap(f -> readJars(Paths.get(f.getPath()), f, f.getGroup()).stream())
 		                                    .collect(Collectors.toSet());
-				
-//		for (FolderConfig folderConfig : config.getFolders()) {
-//			jars.addAll(readJars(Paths.get(folderConfig.getPath()), folderConfig, folderConfig.getGroup()));
-//		}
 		
 		/* read jar content, add list of classes jar object */
 		jars.stream()
 		    .forEach(j -> j.addAll(readJarContents(j)));
 		
+		/* read all known classes from all jars */
 		Map<String, List<Clazz>> knownClasses = jars.stream()
 		                                            .flatMap(j -> j.getClasses().values().stream())
 		                                            .collect(Collectors.groupingBy(Clazz::getFullName));
-	
+		
+		/* find all the class dependencies */
 		jars.stream().forEach(j -> j.setClassDependencies(findClassDependencies(j)));
 		
-		Map<Jar, List<Clazz>> dependencies = jars.stream()
+		/* try to find the jars corresponding to the class dependencies */
+		Map<Jar, Set<Jar>> dependencies = jars.stream()
 			.collect(Collectors.toMap(j -> j, j -> j.getClassDependencies().stream()
 			                                                                .map(d -> findJarDependencies(d, knownClasses))
-																			.collect(Collectors.toList())));
+			                                                                .filter(o -> o.isPresent())
+			                                                                .map(c -> c.get().getSource())
+																			.collect(Collectors.toSet())));
 		
-		dependencies.entrySet().stream().forEach();
+		/* set dependencies on jars */
+		dependencies.entrySet().stream()
+		                        .forEach(entry -> entry.getKey().addDependencies(entry.getValue()));
+		
+		LOGGER.info("Jars containing themselves as dependencies");
+		jars.stream().filter(j -> j.getDependencies().contains(j)).map(Jar::toString).forEach(LOGGER::info);
+		
+		LOGGER.info("Dependencies found");
+		jars.stream().forEach(this::printDependencies);
+		
+		LOGGER.info("Bye bye");
 	}
 	
 	
@@ -77,7 +86,7 @@ public class JarService {
 			                 .collect(Collectors.toSet()));
 			
 			jars.addAll(Files.walk(path, 1)
-			                 .filter(p -> p.toFile().isDirectory())
+			                 .filter(p -> p.toFile().isDirectory() && !p.equals(path))
 			                 .flatMap(p -> readJars(p, config, group + "." + path.toFile().getName()).stream())
 			                 .collect(Collectors.toSet()));
 			
@@ -135,8 +144,9 @@ public class JarService {
 				
 				Matcher m = JDEPS_PATTERN_NOT_FOUND.matcher(line);
 				if (m.find()) {
-					String pack = m.group(1);
-					missingDependencies.add(pack);
+					String sourceClass = m.group(1);
+					String dependencyClass = m.group(2);
+					missingDependencies.add(dependencyClass);
 				}
 			}
 		} catch (IOException e) {
@@ -147,39 +157,41 @@ public class JarService {
 	}
 	
 	
-	public void findJarDependencies(Jar jar, Map<String, Set<Clazz>> classes) throws IOException {
-		Set<String> missingClasses = findClassDependencies(jar);
-		
-		for (String missingDependency : jar.getClassDependencies()) {
-			findJarDependencies(missingDependency, classes);
-		}
-	}
+//	public void findJarDependencies(Jar jar, Map<String, Set<Clazz>> classes) throws IOException {
+//		Set<String> missingClasses = findClassDependencies(jar);
+//
+//		for (String missingDependency : jar.getClassDependencies()) {
+//			findJarDependencies(missingDependency, classes);
+//		}
+//	}
 	
 	
-	private <T extends Collection<Clazz>> Clazz findJarDependencies(String missingDependency, Map<String, T> classes) {
+	private <T extends Collection<Clazz>> Optional<Clazz> findJarDependencies(String missingDependency, Map<String, T> classes) {
 		LOGGER.debug("Finding dependency for " + missingDependency);
 		T clazzes = classes.get(missingDependency);
-		if (clazzes == null || clazzes.size() <= 0)
-			throw new ClassDependencyNotFoundException("Dependency not found for " + missingDependency);
+		if (clazzes == null || clazzes.size() <= 0) {
+			LOGGER.error("Dependency not found for " + missingDependency);
+			return Optional.empty();
+		}
 		
 		if (clazzes.size() > 1) {
-			throw new ClassDependencyNotFoundException("Multiple dependencies found for "
+			LOGGER.error("Multiple dependencies found for "
 					+ missingDependency
 					+ " ("
 					+ String.join(", ", clazzes.stream()
-					                                    .map(c -> c.getSource().getFullPath())
-					                                    .collect(Collectors.toList())) +
+					                           .map(c -> c.getSource().getFullPath())
+					                           .collect(Collectors.toList())) +
 					")");
+			return Optional.empty();
+		}
 			
 		Clazz clazz = clazzes.iterator().next();
 		LOGGER.debug("Dependency found for " + missingDependency + " -> " + clazz.getSource().getFullPath());
 //		jar.addDependency(clazz.getSource());
 //		clazz.getSource().addReverseDependency(jar);
-		return clazz;
-		}
-		
-		
+		return Optional.of(clazz);
 	}
+	
 	
 //	private void findJarDependencies(Jar jar, String missingDependency, Map<String, Set<Clazz>> classes) {
 //		LOGGER.debug("Finding dependency for " + missingDependency);
@@ -201,26 +213,33 @@ public class JarService {
 	
 	
 	
-	public Matrix buildMatrix(List<Path> jarFiles) throws IOException {
-		Matrix matrix = new Matrix();
-		for (Path path : jarFiles) {
-			Jar jar = new Jar(path);
-			Main.LOGGER.debug("Processing jar " + jar.getName() + " @ " + jar.getFullPath());
-			Set<Clazz> clazzes = readJarContents(jar);
-			matrix.add(jar, clazzes);
-		}
-		
-		for (Path path : jarFiles) {
-			Jar jar = matrix.getJar(path);
-			Main.LOGGER.debug("Jdeps " + jar.getName() + " @ " + jar.getFullPath());
-			findJarDependencies(jar, matrix.getClasses());
-		}
-		
-		return matrix;
-	}
+//	public Matrix buildMatrix(List<Path> jarFiles) throws IOException {
+//		Matrix matrix = new Matrix();
+//		for (Path path : jarFiles) {
+//			Jar jar = new Jar(path);
+//			Main.LOGGER.debug("Processing jar " + jar.getName() + " @ " + jar.getFullPath());
+//			Set<Clazz> clazzes = readJarContents(jar);
+//			matrix.add(jar, clazzes);
+//		}
+//
+//		for (Path path : jarFiles) {
+//			Jar jar = matrix.getJar(path);
+//			Main.LOGGER.debug("Jdeps " + jar.getName() + " @ " + jar.getFullPath());
+//			findJarDependencies(jar, matrix.getClasses());
+//		}
+//
+//		return matrix;
+//	}
 	
 	
 	public void extractArtifactInfo(Jar jar) {
 	
+	}
+	
+	
+	
+	private void printDependencies(Jar jar) {
+		LOGGER.info(jar.toString());
+		jar.getDependencies().stream().map(d -> "\t\t|-> " + d).forEach(LOGGER::info);
 	}
 }

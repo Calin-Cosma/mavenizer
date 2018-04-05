@@ -49,7 +49,7 @@ public class Jar {
 	}
 	
 	
-	public void addDependencies(Set<Jar> jars) {
+	public <C extends Collection<Jar>> void addDependencies(C jars) {
 		dependencies.addAll(jars);
 		jars.stream().forEach(j -> j.addReverseDependency(this));
 	}
@@ -80,7 +80,8 @@ public class Jar {
 	@Override
 	public String toString() {
 		return "Jar{" +
-				"path=" + path +
+				"file=" + path.toFile().getName() +
+				", path=" + path +
 				", artifact=" + artifact +
 				'}';
 	}

@@ -31,7 +31,7 @@ public class Main {
 	
 	
 	
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 		Config config = loadConfig(args.length >= 1 ? args[0] : null);
 		
 		JarService jarService = new JarService();
