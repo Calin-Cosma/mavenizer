@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class Jar {
 	
@@ -17,10 +18,14 @@ public class Jar {
 	private Set<String> packages = new HashSet<>();
 	private Set<Jar> dependencies = new HashSet<>();
 	private Set<Jar> reverseDependencies = new HashSet<>();
-	private Set<String> classDependencies = new HashSet<>();
+	private Set<Clazz> missingClassDependencies = new HashSet<>();
+	private Set<Clazz> classDependencies = new HashSet<>();
 	private Artifact artifact;
+	private Map<String, Map<String, Map<String, Set<Clazz>>>> candidateArtifacts = new HashMap<>();
+	private Map<Jar, Set<Clazz>> candidateJars = new HashMap<>();
 	private FolderConfig folderConfig;
 	private String group;
+	private String sha1;
 	
 	public Jar(Path path) {
 		this.path = path;
@@ -35,6 +40,71 @@ public class Jar {
 		this.path = path;
 		this.folderConfig = folderConfig;
 		this.group = group;
+	}
+	
+	
+	public void addCandidateJar(Jar jar, Clazz clazz) {
+		Set<Clazz> clazzes = candidateJars.get(jar);
+		if (clazzes == null) {
+			clazzes = new HashSet<>();
+			candidateJars.put(jar, clazzes);
+		}
+		
+		clazzes.add(clazz);
+	}
+	
+	
+	public void addCandidateArtifact(String group, String name, String version, Clazz clazz) {
+		Map<String, Map<String, Set<Clazz>>> artifacts = candidateArtifacts.get(group);
+		if (artifacts == null) {
+			artifacts = new HashMap<>();
+			candidateArtifacts.put(group, artifacts);
+		}
+		
+		Map<String, Set<Clazz>> versions = artifacts.get(name);
+		if (versions == null) {
+			versions = new HashMap<>();
+			artifacts.put(name, versions);
+		}
+		
+		Set<Clazz> clazzes = versions.get(version);
+		if (clazzes == null) {
+			clazzes = new HashSet<>();
+			versions.put(name, clazzes);
+		}
+		
+		clazzes.add(clazz);
+	}
+	
+	
+	public Set<Artifact> getCandidateArtifactsSet() {
+		return candidateArtifacts.entrySet()
+		                  .stream()
+		                  .flatMap(entry1 -> entry1.getValue().entrySet()
+		                                           .stream()
+		                                           .flatMap(entry2 -> entry2.getValue().entrySet()
+		                                                                    .stream()
+		                                                                    .map(entry3 -> new Artifact(entry1.getKey(), entry2.getKey(), entry3.getKey()))))
+		                  .collect(Collectors.toSet());
+	}
+	
+	
+	public Set<ArtifactCandidate> getCandidateArtifactsMap() {
+		return candidateArtifacts.entrySet()
+		                         .stream()
+		                         .flatMap(entry1 -> entry1.getValue().entrySet()
+		                                                  .stream()
+		                                                  .flatMap(entry2 -> entry2.getValue().entrySet()
+		                                                                           .stream()
+		                                                                           .map(entry3 -> new ArtifactCandidate(entry1.getKey(), entry2.getKey(), entry3.getKey(),
+				                                                                           entry3.getValue()))))
+				.collect(Collectors.toSet());
+				                                                                         
+				                                                                         
+//				                                                                           new ArtifactCandidate(entry1.getKey(), entry2.getKey(), entry3.getKey(),
+//				                                                                           entry3.getValue()))))
+//		                         ..collect(
+//				Collectors.toMap();
 	}
 	
 	
@@ -163,11 +233,44 @@ public class Jar {
 		this.reverseDependencies = reverseDependencies;
 	}
 	
-	public Set<String> getClassDependencies() {
+	public Set<Clazz> getMissingClassDependencies() {
+		return missingClassDependencies;
+	}
+	
+	public void setMissingClassDependencies(Set<Clazz> missingClassDependencies) {
+		this.missingClassDependencies = missingClassDependencies;
+	}
+	
+	public Set<Clazz> getClassDependencies() {
 		return classDependencies;
 	}
 	
-	public void setClassDependencies(Set<String> classDependencies) {
+	public void setClassDependencies(Set<Clazz> classDependencies) {
 		this.classDependencies = classDependencies;
+	}
+	
+	public Map<Jar, Set<Clazz>> getCandidateJars() {
+		return candidateJars;
+	}
+	
+	public void setCandidateJars(Map<Jar, Set<Clazz>> candidateJars) {
+		this.candidateJars = candidateJars;
+	}
+	
+	public void setCandidateArtifacts(
+			Map<String, Map<String, Map<String, Set<Clazz>>>> candidateArtifacts) {
+		this.candidateArtifacts = candidateArtifacts;
+	}
+	
+	public String getSha1() {
+		return sha1;
+	}
+	
+	public void setSha1(String sha1) {
+		this.sha1 = sha1;
+	}
+	
+	public Map<String, Map<String, Map<String, Set<Clazz>>>> getCandidateArtifacts() {
+		return candidateArtifacts;
 	}
 }

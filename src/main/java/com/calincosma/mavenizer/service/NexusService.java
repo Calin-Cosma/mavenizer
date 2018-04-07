@@ -1,6 +1,5 @@
 package com.calincosma.mavenizer.service;
 
-import com.calincosma.mavenizer.Main;
 import com.calincosma.mavenizer.domain.Jar;
 import com.calincosma.mavenizer.domain.nexus.Artifact;
 import com.calincosma.mavenizer.domain.nexus.NexusResponse;
@@ -20,8 +19,12 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.MessageFormat;
+import java.util.List;
 
 public class NexusService {
+	
+	public static final String NEXUS_URL_SEARCH_SHA1 = "http://search.maven.org/solrsearch/select?q=1:\"{0}\"&rows=50&wt=json";
+	public static final String NEXUS_URL_SEARCH_CLASS = "http://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json";
 	
 	public static final Logger LOGGER = LoggerFactory.getLogger(NexusService.class);
 	
@@ -43,9 +46,9 @@ public class NexusService {
 	
 	
 	
-	public String sha1Search(String sha1) {
+	public String nexusSearch(String url) {
 		Client client = Client.create();
-		WebResource webResource = client.resource(MessageFormat.format(Main.NEXUS_URL, sha1));
+		WebResource webResource = client.resource(url);
 		ClientResponse response = webResource.accept("application/json").get(ClientResponse.class);
 		if (response.getStatus() != 200) {
 			throw new RuntimeException("Failed : HTTP error code : " + response.getStatus());
@@ -56,9 +59,12 @@ public class NexusService {
 	
 	
 	public Artifact findMavenArtifact(Jar jar) {
+		LOGGER.debug("Searching Maven Central by SHA1 for " + jar);
 		try {
 			String sha1 = calcSHA1(new File(jar.getFullPath()));
-			String json = sha1Search(sha1);
+			String url = MessageFormat.format(NEXUS_URL_SEARCH_SHA1, sha1);
+			LOGGER.debug("Maven Central URL: " + url);
+			String json = nexusSearch(url);
 			Gson gson = new GsonBuilder().create();
 			NexusResponse nexusResponse = gson.fromJson(json, NexusResponse.class);
 			
@@ -77,6 +83,28 @@ public class NexusService {
 			return nexusResponse.getResponse().getArtifacts().get(0);
 		} catch (Exception e) {
 			LOGGER.error("Error while searching Maven artifact for " + jar.getFullPath(), e);
+			return null;
+		}
+	}
+	
+	
+	
+	public List<Artifact> findByClass(String className) {
+		LOGGER.debug("Searching Maven Central by class name for " + className);
+		try {
+			String url = MessageFormat.format(NEXUS_URL_SEARCH_CLASS, className);
+			LOGGER.debug("Maven Central URL: " + url);
+			String json = nexusSearch(url);
+			Gson gson = new GsonBuilder().create();
+			NexusResponse nexusResponse = gson.fromJson(json, NexusResponse.class);
+			
+			if (nexusResponse.getResponseHeader().getStatus() != 0)
+				throw new RuntimeException("Class name search failed with status: " + nexusResponse.getResponseHeader().getStatus());
+			
+			LOGGER.info("Found Maven " + nexusResponse.getResponse().numFound + " artifacts for " + className);
+			return nexusResponse.getResponse().getArtifacts();
+		} catch (Exception e) {
+			LOGGER.error("Error while searching Maven artifact for " + className, e);
 			return null;
 		}
 	}

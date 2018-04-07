@@ -26,7 +26,12 @@ public class Clazz {
 		candidates.add(jar);
 	}
 	
-	
+	@Override
+	public String toString() {
+		return "Clazz{" +
+				"name='" + getFullName() + '\'' +
+				'}';
+	}
 	
 	public String getFullName() {
 		return packageName + "." + className;

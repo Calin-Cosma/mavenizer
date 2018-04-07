@@ -27,8 +27,6 @@ public class Main {
 	
 	public static final Pattern ARTIFACT_NAME_PATTERN = Pattern.compile("^(?:\\Q" + ARTIFACT_GROUP + ".\\E)?(.+?)(-\\d.*)?\\Q.jar\\E$");
 	
-	public static final String NEXUS_URL = "http://search.maven.org/solrsearch/select?q=1:{0}&rows=20&wt=json";
-	
 	
 	
 	public static void main(String[] args) {
