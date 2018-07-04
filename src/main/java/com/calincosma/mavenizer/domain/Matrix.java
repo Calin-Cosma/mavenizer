@@ -1,4 +1,4 @@
-package com.calincosma.dependencymatrix.domain;
+package com.calincosma.mavenizer.domain;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,8 +14,8 @@ public class Matrix {
 	
 	public static final Logger LOGGER = LoggerFactory.getLogger(Matrix.class);
 	
-	Map<Path, Jar> jars = new HashMap<>();
-	Map<String, Set<Clazz>> dependencies = new HashMap<>();
+	private Map<Path, Jar> jars = new HashMap<>();
+	private Map<String, Set<Clazz>> classes = new HashMap<>();
 	
 	
 	
@@ -27,10 +27,10 @@ public class Matrix {
 	
 	
 	public void addClass(Clazz clazz) {
-		Set<Clazz> classes = dependencies.get(clazz.getFullName());
+		Set<Clazz> classes = this.classes.get(clazz.getFullName());
 		if (classes == null) {
 			classes = new HashSet<>();
-			dependencies.put(clazz.getFullName(), classes);
+			this.classes.put(clazz.getFullName(), classes);
 		}
 		classes.add(clazz);
 	}
@@ -41,10 +41,10 @@ public class Matrix {
 		jars.put(jar.getPath(), jar);
 		
 //		for (String pack : jar.getPackages()) {
-//			List<Jar> packages = dependencies.get(pack);
+//			List<Jar> packages = classes.get(pack);
 //			if (packages == null) {
 //				packages = new ArrayList<>();
-//				dependencies.put(pack, packages);
+//				classes.put(pack, packages);
 //			} else {
 //				LOGGER.warn("Multiple jars for package " + pack);
 //			}
@@ -58,8 +58,8 @@ public class Matrix {
 	
 	
 	public Set<Clazz> getDependencies(String clazzName) {
-		return dependencies.get(clazzName);
-//		List<Jar> jars = dependencies.get(pack);
+		return classes.get(clazzName);
+//		List<Jar> jars = classes.get(pack);
 //		if (jars == null) {
 //			LOGGER.warn("No jars for package " + pack);
 //		} else if (jars.size() > 1) {
@@ -79,10 +79,23 @@ public class Matrix {
 //	}
 //
 //	public Map<String, List<Jar>> getDependencies() {
-//		return dependencies;
+//		return classes;
 //	}
 //
-//	public void setDependencies(Map<String, List<Jar>> dependencies) {
-//		this.dependencies = dependencies;
+//	public void setDependencies(Map<String, List<Jar>> classes) {
+//		this.classes = classes;
 //	}
+	
+	
+	public void setJars(Map<Path, Jar> jars) {
+		this.jars = jars;
+	}
+	
+	public Map<String, Set<Clazz>> getClasses() {
+		return classes;
+	}
+	
+	public void setClasses(Map<String, Set<Clazz>> classes) {
+		this.classes = classes;
+	}
 }

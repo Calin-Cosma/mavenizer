@@ -1,4 +1,4 @@
-package com.calincosma.dependencymatrix.domain;
+package com.calincosma.mavenizer.domain;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -16,10 +16,22 @@ public class Clazz {
 		this.className = className;
 	}
 	
+	public Clazz(String packageName, String className, Jar source) {
+		this.packageName = packageName;
+		this.className = className;
+		this.source = source;
+	}
+	
 	public void addCandidate(Jar jar) {
 		candidates.add(jar);
 	}
 	
+	@Override
+	public String toString() {
+		return "Clazz{" +
+				"name='" + getFullName() + '\'' +
+				'}';
+	}
 	
 	public String getFullName() {
 		return packageName + "." + className;

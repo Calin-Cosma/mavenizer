@@ -1,4 +1,4 @@
-package com.calincosma.dependencymatrix.domain.nexus;
+package com.calincosma.mavenizer.domain.nexus;
 
 public class NexusResponse {
 	

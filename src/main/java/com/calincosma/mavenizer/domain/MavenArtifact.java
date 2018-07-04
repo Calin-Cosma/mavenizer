@@ -1,4 +1,4 @@
-package com.calincosma.dependencymatrix.domain;
+package com.calincosma.mavenizer.domain;
 
 public class MavenArtifact {
 	

@@ -1,4 +1,4 @@
-package com.calincosma.dependencymatrix.domain.nexus;
+package com.calincosma.mavenizer.domain.nexus;
 
 import com.google.gson.annotations.SerializedName;
 
