@@ -1,7 +1,34 @@
-fun main(args: Array<String>) {
-	println("Hello World!")
+import com.calincosma.jargs.Parser
+import com.calincosma.mavenizer.Args
+import java.io.File
+import java.io.FileFilter
 
-	// Try adding program arguments via Run/Debug configuration.
-	// Learn more about running applications: https://www.jetbrains.com/help/idea/running-applications.html.
-	println("Program arguments: ${args.joinToString()}")
+fun main(args: Array<String>) {
+
+	val args = Parser.getInstance().parse(args, Args::class.java)
+	println("Reading folder: ${args.folder.absolutePath}")
+
+//	args.folder.walk().forEach { println(it.absolutePath) }
+
+	args.folder.listFiles { file -> file.absolutePath.lowercase().endsWith(".jar") }
+		.forEach {
+			println(it.absolutePath)
+
+		}
+
+//	args.folder.walk()
+
+//	File("/Users/calin/work/clients/dasi/dasi & expert/expert/lib").walk().forEach {
+//		println(it)
+//	}
+
 }
+
+
+fun checkFile(file: File) : Boolean {
+	println(file.absolutePath)
+	println(file.absolutePath.lowercase().endsWith(".jar"))
+
+	return true
+}
+
