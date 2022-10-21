@@ -23,8 +23,8 @@ import javax.xml.bind.annotation.adapters.HexBinaryAdapter
 
 class NexusService {
 
-	val NEXUS_URL_SEARCH_SHA1 = "http://search.maven.org/solrsearch/select?q=1:\"{0}\"&rows=50&wt=json"
-	val NEXUS_URL_SEARCH_CLASS = "http://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json"
+	private val NEXUS_URL_SEARCH_SHA1 = "https://search.maven.org/solrsearch/select?q=1:\"{0}\"&rows=50&wt=json"
+	private val NEXUS_URL_SEARCH_CLASS = "https://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json"
 
 	val LOGGER = LoggerFactory.getLogger(NexusService::class.java)
 
@@ -59,6 +59,7 @@ class NexusService {
 //		val webResource: WebResource = client.resource(url)
 //		val response: ClientResponse = webResource.accept("application/json").get(ClientResponse::class.java)
 		if (response.status !== HttpStatusCode.OK) {
+			LOGGER.error(response.bodyAsText())
 			throw RuntimeException("Failed : HTTP error code : " + response.status)
 		}
 
@@ -67,23 +68,23 @@ class NexusService {
 	}
 
 
-	suspend fun findMavenArtifact(jar: Jar): Artifact? {
-		LOGGER.debug("Searching Maven Central by SHA1 for $jar")
+	suspend fun findMavenArtifact(path: String): Artifact? {
+		LOGGER.debug("Searching Maven Central by SHA1 for $path")
 		return try {
-			val sha1 = calcSHA1(File(jar.path))
+			val sha1 = calcSHA1(File(path))
 			val url = MessageFormat.format(NEXUS_URL_SEARCH_SHA1, sha1)
-			LOGGER.debug("Maven Central URL: $url")
+			LOGGER.info("Maven Central URL: $url")
 			val nexusResponse: NexusResponse = nexusSearch(url)
-			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: " + nexusResponse.responseHeader.status)
+			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: ${nexusResponse.responseHeader.status}")
 			if (nexusResponse.response.numFound > 1) throw RuntimeException("SHA1 checksum search returned too many results")
 			if (nexusResponse.response.numFound == 0) {
-				LOGGER.info("No Maven artifact found for " + jar.path)
+				LOGGER.info("No Maven artifact found for $path")
 				return null
 			}
-			LOGGER.info("Found Maven artifact for " + jar.path + "; " + nexusResponse.response.artifacts.get(0))
+			LOGGER.info("Found Maven artifact for $path; ${nexusResponse.response.artifacts.get(0)}")
 			nexusResponse.response.artifacts.get(0)
 		} catch (e: Exception) {
-			LOGGER.error("Error while searching Maven artifact for " + jar.path, e)
+			LOGGER.error("Error while searching Maven artifact for $path", e)
 			null
 		}
 	}
