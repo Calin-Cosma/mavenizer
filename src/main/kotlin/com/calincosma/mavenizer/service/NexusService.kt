@@ -1,16 +1,17 @@
-package com.calincosma.mavenizer
+package com.calincosma.mavenizer.service
 
 import com.calincosma.mavenizer.model.Artifact
-import com.calincosma.mavenizer.model.Jar
 import com.calincosma.mavenizer.model.NexusResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import jakarta.xml.bind.annotation.adapters.HexBinaryAdapter
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -18,18 +19,17 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.text.MessageFormat
-import javax.xml.bind.annotation.adapters.HexBinaryAdapter
 
 class NexusService {
 
-	private val NEXUS_URL_SEARCH_SHA1 = "https://search.maven.org/solrsearch/select?q=1:\"{0}\"&rows=50&wt=json"
-	private val NEXUS_URL_SEARCH_CLASS = "https://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json"
+	private val NEXUS_URL_SEARCH = "https://search.maven.org/solrsearch/select"
+//	private val NEXUS_URL_SEARCH_SHA1 = "https://search.maven.org/solrsearch/select?q=1:{0}&rows=50&wt=json"
+//	private val NEXUS_URL_SEARCH_CLASS = "https://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json"
 
 	val LOGGER = LoggerFactory.getLogger(NexusService::class.java)
 
 	@Throws(IOException::class, NoSuchAlgorithmException::class)
-	fun calcSHA1(file: File?): String? {
+	fun calcSHA1(file: File): String {
 		val sha1 = MessageDigest.getInstance("SHA-1")
 		FileInputStream(file).use { input ->
 			val buffer = ByteArray(8192)
@@ -42,29 +42,38 @@ class NexusService {
 		}
 	}
 
-	suspend fun nexusSearch(url: String): NexusResponse {
+
+	private suspend fun nexusSearchBySha1(sha1: String) : NexusResponse = nexusSearch("1", sha1)
+
+	private suspend fun nexusSearchByClassName(className: String) : NexusResponse = nexusSearch("fc", className)
+
+	private suspend fun nexusSearch(paramPrefix: String, param: String): NexusResponse {
 
 		val client = HttpClient(CIO) {
 			install(ContentNegotiation) {
 				json(Json {
 					prettyPrint = true
 					isLenient = true
+					ignoreUnknownKeys = true
 				})
 			}
+			install(Logging) {
+				logger = Logger.DEFAULT
+				level = LogLevel.ALL
+			}
 		}
-		val response: HttpResponse = client.get(url)
-
-
-//		val client: Client = Client.create()
-//		val webResource: WebResource = client.resource(url)
-//		val response: ClientResponse = webResource.accept("application/json").get(ClientResponse::class.java)
-		if (response.status !== HttpStatusCode.OK) {
-			LOGGER.error(response.bodyAsText())
-			throw RuntimeException("Failed : HTTP error code : " + response.status)
+		val response: HttpResponse = client.get {
+			url(NEXUS_URL_SEARCH)
+			parameter("q", "$paramPrefix:$param")
+			parameter("rows", "50")
+			parameter("wt", "json")
 		}
+		if (response.status.isSuccess())
+			return response.body()
 
-		val nexusResponse : NexusResponse = response.body()
-		return nexusResponse
+
+		LOGGER.error(response.bodyAsText())
+		throw RuntimeException("Failed. HTTP error code: " + response.status)
 	}
 
 
@@ -72,9 +81,9 @@ class NexusService {
 		LOGGER.debug("Searching Maven Central by SHA1 for $path")
 		return try {
 			val sha1 = calcSHA1(File(path))
-			val url = MessageFormat.format(NEXUS_URL_SEARCH_SHA1, sha1)
-			LOGGER.info("Maven Central URL: $url")
-			val nexusResponse: NexusResponse = nexusSearch(url)
+//			val url = MessageFormat.format(NEXUS_URL_SEARCH_SHA1, sha1)
+//			LOGGER.info("Maven Central URL: $url")
+			val nexusResponse: NexusResponse = nexusSearchBySha1(sha1)
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: ${nexusResponse.responseHeader.status}")
 			if (nexusResponse.response.numFound > 1) throw RuntimeException("SHA1 checksum search returned too many results")
 			if (nexusResponse.response.numFound == 0) {
@@ -93,9 +102,9 @@ class NexusService {
 	suspend fun findByClass(className: String): List<Artifact?>? {
 		LOGGER.debug("Searching Maven Central by class name for $className")
 		return try {
-			val url = MessageFormat.format(NEXUS_URL_SEARCH_CLASS, className)
-			LOGGER.debug("Maven Central URL: $url")
-			val nexusResponse: NexusResponse = nexusSearch(url)
+//			val url = MessageFormat.format(NEXUS_URL_SEARCH_CLASS, className)
+//			LOGGER.debug("Maven Central URL: $url")
+			val nexusResponse: NexusResponse = nexusSearchByClassName(className)
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("Class name search failed with status: " + nexusResponse.responseHeader.status)
 			LOGGER.info("Found Maven " + nexusResponse.response.numFound + " artifacts for " + className)
 			nexusResponse.response.artifacts

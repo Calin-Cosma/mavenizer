@@ -22,8 +22,10 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktor_version")
     implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
+    implementation("io.ktor:ktor-client-logging:$ktor_version")
+    implementation("org.freemarker:freemarker:2.3.31")
     implementation("com.calincosma:jargs:1.0.2")
-    implementation("org.glassfish.jaxb:jaxb-runtime:2.3.2")
+    implementation("org.glassfish.jaxb:jaxb-runtime:4.0.0")
     implementation("org.slf4j:slf4j-api:2.0.3")
     implementation("org.slf4j:slf4j-simple:2.0.3")
 

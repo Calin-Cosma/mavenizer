@@ -21,12 +21,17 @@ data class Response(
 	@SerialName("docs") val artifacts: List<Artifact?>
 )
 
-
 @Serializable
-data class Artifact (
+data class Artifact(
 	val id: String,
 	@SerialName("g") val group: String,
 	@SerialName("a") val name: String,
 	@SerialName("v") val version: String,
 	@SerialName("p") val packaging: String
+)
+
+data class ArtifactCandidate (
+	val artifact: Artifact?,
+	val path: String?,
+	val classes : Set<Claxx>?
 )
