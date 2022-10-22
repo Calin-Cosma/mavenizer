@@ -23,8 +23,6 @@ import java.security.NoSuchAlgorithmException
 class NexusService {
 
 	private val NEXUS_URL_SEARCH = "https://search.maven.org/solrsearch/select"
-//	private val NEXUS_URL_SEARCH_SHA1 = "https://search.maven.org/solrsearch/select?q=1:{0}&rows=50&wt=json"
-//	private val NEXUS_URL_SEARCH_CLASS = "https://search.maven.org/solrsearch/select?q=fc:\"{0}\"&rows=50&wt=json"
 
 	val LOGGER = LoggerFactory.getLogger(NexusService::class.java)
 
@@ -81,8 +79,6 @@ class NexusService {
 		LOGGER.debug("Searching Maven Central by SHA1 for $path")
 		return try {
 			val sha1 = calcSHA1(File(path))
-//			val url = MessageFormat.format(NEXUS_URL_SEARCH_SHA1, sha1)
-//			LOGGER.info("Maven Central URL: $url")
 			val nexusResponse: NexusResponse = nexusSearchBySha1(sha1)
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: ${nexusResponse.responseHeader.status}")
 			if (nexusResponse.response.numFound > 1) throw RuntimeException("SHA1 checksum search returned too many results")
@@ -102,8 +98,6 @@ class NexusService {
 	suspend fun findByClass(className: String): List<Artifact?>? {
 		LOGGER.debug("Searching Maven Central by class name for $className")
 		return try {
-//			val url = MessageFormat.format(NEXUS_URL_SEARCH_CLASS, className)
-//			LOGGER.debug("Maven Central URL: $url")
 			val nexusResponse: NexusResponse = nexusSearchByClassName(className)
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("Class name search failed with status: " + nexusResponse.responseHeader.status)
 			LOGGER.info("Found Maven " + nexusResponse.response.numFound + " artifacts for " + className)

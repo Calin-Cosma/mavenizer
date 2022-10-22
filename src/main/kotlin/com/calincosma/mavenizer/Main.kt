@@ -36,7 +36,7 @@ suspend fun main(args: Array<String>) {
 				println("Found artifact: ${artifact.group}:${artifact.artifact}:${artifact.version}")
 				ArtifactCandidate(artifact, null, null)
 			} else {
-				println("Artifact not found")
+				println("Artifact not found for ${it.absolutePath}")
 				val classes = javaService.readJarContents(it.absolutePath)
 				ArtifactCandidate(null, it.absolutePath, classes)
 			}
