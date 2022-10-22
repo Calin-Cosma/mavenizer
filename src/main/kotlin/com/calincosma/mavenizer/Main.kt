@@ -29,14 +29,11 @@ suspend fun main(args: Array<String>) {
 		.asFlow()
 		.filter { it.isFile && it.absolutePath.lowercase().endsWith(".jar") }
 		.map{
-			println(it.absolutePath)
 			val artifact : Artifact? = nexusService.findMavenArtifact(it.absolutePath)
 
 			return@map if (artifact != null) {
-				println("Found artifact: ${artifact.group}:${artifact.artifact}:${artifact.version}")
 				ArtifactCandidate(artifact, null, null)
 			} else {
-				println("Artifact not found for ${it.absolutePath}")
 				val classes = javaService.readJarContents(it.absolutePath)
 				ArtifactCandidate(null, it.absolutePath, classes)
 			}
@@ -46,10 +43,13 @@ suspend fun main(args: Array<String>) {
 
 	// TODO treat candidates
 
-//	println(candidates)
+	writePom(params, candidates)
 
+
+}
+
+private fun writePom(params: Args, candidates: List<ArtifactCandidate>) {
 	val temp: Template = cfg.getTemplate("pom.xml.ftl")
-
 
 	val templateParams = mapOf(
 		"group" to params.group,
@@ -60,8 +60,5 @@ suspend fun main(args: Array<String>) {
 
 	val out: Writer = OutputStreamWriter(System.out)
 	temp.process(templateParams, out)
-
-
-
 }
 

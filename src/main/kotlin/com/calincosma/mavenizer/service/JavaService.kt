@@ -21,7 +21,7 @@ class JavaService {
 		val Claxxes: MutableSet<Claxx> = HashSet<Claxx>()
 		try {
 			val command = "jar -tf $path"
-			LOGGER.info("Analyzing jar $path")
+			LOGGER.debug("Analyzing jar $path")
 			val processBuilder = ProcessBuilder("/bin/bash", "-c", command)
 			val process = processBuilder.start()
 			val br = BufferedReader(InputStreamReader(process.inputStream))

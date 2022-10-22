@@ -83,10 +83,10 @@ class NexusService {
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: ${nexusResponse.responseHeader.status}")
 			if (nexusResponse.response.numFound > 1) throw RuntimeException("SHA1 checksum search returned too many results")
 			if (nexusResponse.response.numFound == 0) {
-				LOGGER.info("No Maven artifact found for $path")
+				LOGGER.warn("No Maven artifact found for $path")
 				return null
 			}
-			LOGGER.info("Found Maven artifact for $path; ${nexusResponse.response.artifacts.get(0)}")
+			LOGGER.info("Found Maven artifact ${nexusResponse.response.artifacts.get(0)} for $path")
 			nexusResponse.response.artifacts.get(0)
 		} catch (e: Exception) {
 			LOGGER.error("Error while searching Maven artifact for $path", e)
