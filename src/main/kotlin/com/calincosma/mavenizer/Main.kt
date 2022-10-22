@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import java.io.File
 import java.io.OutputStreamWriter
 import java.io.Writer
 
@@ -24,11 +23,7 @@ suspend fun main(args: Array<String>) {
 	val nexusService = NexusService()
 	val javaService = JavaService()
 
-
-//	cfg.setDirectoryForTemplateLoading(File("templates"))
 	cfg.setClassForTemplateLoading(NexusService::class.java, "/templates/")
-
-
 
 	val candidates = params.folder.walk()
 		.asFlow()
@@ -38,7 +33,7 @@ suspend fun main(args: Array<String>) {
 			val artifact : Artifact? = nexusService.findMavenArtifact(it.absolutePath)
 
 			return@map if (artifact != null) {
-				println("Found artifact: ${artifact.group}:${artifact.name}:${artifact.version}")
+				println("Found artifact: ${artifact.group}:${artifact.artifact}:${artifact.version}")
 				ArtifactCandidate(artifact, null, null)
 			} else {
 				println("Artifact not found")
@@ -47,7 +42,7 @@ suspend fun main(args: Array<String>) {
 			}
 		}
 		.toList()
-		.sortedWith(nullsFirst(compareBy { it.artifact?.name }))
+		.sortedWith(nullsFirst(compareBy { it.artifact?.artifact }))
 
 	// TODO treat candidates
 
@@ -55,12 +50,17 @@ suspend fun main(args: Array<String>) {
 
 	val temp: Template = cfg.getTemplate("pom.xml.ftl")
 
-	candidates.forEach {
-		val root: MutableMap<String, Artifact> = HashMap()
-		root["artifact"] = it.artifact!!
-		val out: Writer = OutputStreamWriter(System.out)
-		temp.process(root, out)
-	}
+
+	val templateParams = mapOf(
+		"group" to params.group,
+		"artifact" to params.artifact,
+		"version" to params.version,
+		"dependencies" to candidates.map { it.artifact }.filterNotNull().toList()
+	)
+
+	val out: Writer = OutputStreamWriter(System.out)
+	temp.process(templateParams, out)
+
 
 
 }

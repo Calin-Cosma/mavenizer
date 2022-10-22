@@ -12,6 +12,9 @@ public class Args {
 	@Arg(value = "-g")
 	private String group;
 
+	@Arg(value = "-a")
+	private String artifact;
+
 	@Arg(value = "-v")
 	private String version;
 
@@ -37,5 +40,13 @@ public class Args {
 
 	public void setVersion(String version) {
 		this.version = version;
+	}
+
+	public String getArtifact() {
+		return artifact;
+	}
+
+	public void setArtifact(String artifact) {
+		this.artifact = artifact;
 	}
 }

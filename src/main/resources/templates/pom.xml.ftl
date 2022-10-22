@@ -5,17 +5,19 @@
          xmlns:th="http://www.thymeleaf.org">
 	<modelVersion>4.0.0</modelVersion>
 	
-	<groupId>${artifact.group}</groupId>
-	<artifactId>${artifact.name}</artifactId>
-	<version>${artifact.version}</version>
-	
-<#--	<dependencies th:if="${not #lists.isEmpty(dependencies)}">-->
-<#--		<dependency th:each="dependency : ${dependencies}">-->
-<#--			<groupId th:text="${dependency.group}">dependency.group</groupId>-->
-<#--			<artifactId th:text="${dependency.artifact}">dependency.artifact</artifactId>-->
-<#--			<version th:text="${dependency.version}">dependency.version</version>-->
-<#--		</dependency>-->
-<#--	</dependencies>-->
+	<groupId>${group}</groupId>
+	<artifactId>${artifact}</artifactId>
+	<version>${version}</version>
+
+	<dependencies>
+    <#list dependencies as dependency>
+	    <dependency>
+		    <groupId>${dependency.group}</groupId>
+		    <artifactId>${dependency.artifact}</artifactId>
+		    <version>${dependency.version}</version>
+	    </dependency>
+    </#list>
+	</dependencies>
 
 
 </project>

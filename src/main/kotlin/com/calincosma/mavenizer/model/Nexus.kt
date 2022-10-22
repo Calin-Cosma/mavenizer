@@ -25,7 +25,7 @@ data class Response(
 data class Artifact(
 	val id: String,
 	@SerialName("g") val group: String,
-	@SerialName("a") val name: String,
+	@SerialName("a") val artifact: String,
 	@SerialName("v") val version: String,
 	@SerialName("p") val packaging: String
 )
