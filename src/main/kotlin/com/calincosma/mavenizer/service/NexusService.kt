@@ -1,6 +1,6 @@
 package com.calincosma.mavenizer.service
 
-import com.calincosma.mavenizer.model.Artifact
+import com.calincosma.mavenizer.model.NexusArtifact
 import com.calincosma.mavenizer.model.NexusResponse
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -11,14 +11,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import jakarta.xml.bind.annotation.adapters.HexBinaryAdapter
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.io.FileInputStream
-import java.io.IOException
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 
 class NexusService {
 
@@ -26,19 +20,7 @@ class NexusService {
 
 	val LOGGER = LoggerFactory.getLogger(NexusService::class.java)
 
-	@Throws(IOException::class, NoSuchAlgorithmException::class)
-	fun calcSHA1(file: File): String {
-		val sha1 = MessageDigest.getInstance("SHA-1")
-		FileInputStream(file).use { input ->
-			val buffer = ByteArray(8192)
-			var len = input.read(buffer)
-			while (len != -1) {
-				sha1.update(buffer, 0, len)
-				len = input.read(buffer)
-			}
-			return HexBinaryAdapter().marshal(sha1.digest())
-		}
-	}
+
 
 
 	private suspend fun nexusSearchBySha1(sha1: String) : NexusResponse = nexusSearch("1", sha1)
@@ -71,31 +53,29 @@ class NexusService {
 
 
 		LOGGER.error(response.bodyAsText())
-		throw RuntimeException("Failed. HTTP error code: " + response.status)
+		throw RuntimeException("Nexus search failed. HTTP error code: ${response.status}")
 	}
 
 
-	suspend fun findMavenArtifact(path: String): Artifact? {
-		LOGGER.debug("Searching Maven Central by SHA1 for $path")
-		return try {
-			val sha1 = calcSHA1(File(path))
+	suspend fun findNexusArtifacts(sha1: String): List<NexusArtifact> {
+		LOGGER.debug("Searching Maven Central by SHA1 for $sha1")
+		try {
 			val nexusResponse: NexusResponse = nexusSearchBySha1(sha1)
 			if (nexusResponse.responseHeader.status != 0) throw RuntimeException("SHA1 checksum search failed with status: ${nexusResponse.responseHeader.status}")
-			if (nexusResponse.response.numFound > 1) throw RuntimeException("SHA1 checksum search returned too many results")
-			if (nexusResponse.response.numFound == 0) {
-				LOGGER.warn("No Maven artifact found for $path")
-				return null
+			if (nexusResponse.response.numFound > 0) {
+				LOGGER.debug("Found Maven artifact ${nexusResponse.response.artifacts.get(0)} for $sha1")
+				return nexusResponse.response.artifacts
 			}
-			LOGGER.info("Found Maven artifact ${nexusResponse.response.artifacts.get(0)} for $path")
-			nexusResponse.response.artifacts.get(0)
+			LOGGER.warn("No Maven artifact found for $sha1")
 		} catch (e: Exception) {
-			LOGGER.error("Error while searching Maven artifact for $path", e)
-			null
+			LOGGER.error("Error while searching Maven artifact for $sha1", e)
 		}
+
+		return listOf()
 	}
 
 
-	suspend fun findByClass(className: String): List<Artifact?>? {
+	suspend fun findByClass(className: String): List<NexusArtifact?>? {
 		LOGGER.debug("Searching Maven Central by class name for $className")
 		return try {
 			val nexusResponse: NexusResponse = nexusSearchByClassName(className)

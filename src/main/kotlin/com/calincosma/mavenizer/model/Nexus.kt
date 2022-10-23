@@ -18,20 +18,15 @@ data class ResponseHeader(val status: Int)
 @Serializable
 data class Response(
 	val numFound: Int,
-	@SerialName("docs") val artifacts: List<Artifact?>
+	@SerialName("docs") val artifacts: List<NexusArtifact>
 )
 
 @Serializable
-data class Artifact(
+data class NexusArtifact(
 	val id: String,
 	@SerialName("g") val group: String,
 	@SerialName("a") val artifact: String,
 	@SerialName("v") val version: String,
-	@SerialName("p") val packaging: String
-)
-
-data class ArtifactCandidate (
-	val artifact: Artifact?,
-	val path: String?,
-	val classes : Set<Claxx>?
+	@SerialName("p") val packaging: String,
+	val timestamp: Long,
 )
